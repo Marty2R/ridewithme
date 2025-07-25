@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Register() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -17,11 +19,13 @@ export default function Register() {
   });
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
+    // Validation côté client
     const newErrors: {[key: string]: string} = {};
     
     if (!formData.firstName.trim()) {
@@ -65,7 +69,43 @@ export default function Register() {
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length === 0) {
-      console.log("Registration attempted:", formData);
+      try {
+        setLoading(true);
+        setErrors({});
+
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone,
+            city: formData.city,
+            agreeTerms: formData.agreeTerms,
+            agreeMarketing: formData.agreeMarketing
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setSuccess(true);
+          setTimeout(() => {
+            router.push('/login?message=registered');
+          }, 2000);
+        } else {
+          setErrors({ general: data.error || 'Une erreur est survenue' });
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'inscription:', error);
+        setErrors({ general: 'Erreur de connexion au serveur' });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -85,6 +125,23 @@ export default function Register() {
     }
   };
 
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-slate-800/50 rounded-2xl border border-slate-700 p-8">
+            <div className="text-6xl mb-4">✅</div>
+            <h2 className="text-2xl font-bold text-green-400 mb-4">Inscription réussie !</h2>
+            <p className="text-gray-300 mb-4">
+              Votre compte a été créé avec succès. Vous allez être redirigé vers la page de connexion.
+            </p>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-400 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto">
@@ -103,6 +160,12 @@ export default function Register() {
         </div>
 
         <div className="bg-slate-800/50 rounded-2xl border border-slate-700 p-8">
+          {errors.general && (
+            <div className="mb-6 p-4 bg-red-600/20 border border-red-500/50 rounded-xl text-red-400 text-center">
+              {errors.general}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Personal Information */}
             <div className="grid grid-cols-2 gap-4">
@@ -310,9 +373,17 @@ export default function Register() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              Créer mon compte
+              {loading ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Création en cours...</span>
+                </div>
+              ) : (
+                'Créer mon compte'
+              )}
             </button>
           </form>
 

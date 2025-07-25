@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "autoprefixer": "^10.4.21",
+    "bcryptjs": "^3.0.2",
     "dotenv": "^17.2.1",
     "mongoose": "^8.16.5",
     "next": "15.4.3",

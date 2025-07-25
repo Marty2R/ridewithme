@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -11,8 +16,17 @@ export default function Login() {
   });
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const message = searchParams.get('message');
+    if (message === 'registered') {
+      setSuccessMessage('Inscription réussie ! Vous pouvez maintenant vous connecter.');
+    }
+  }, [searchParams]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Simple validation
@@ -26,14 +40,44 @@ export default function Login() {
     
     if (!formData.password) {
       newErrors.password = "Le mot de passe est requis";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Le mot de passe doit contenir au moins 6 caractères";
     }
     
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length === 0) {
-      console.log("Login attempted:", formData);
+      try {
+        setLoading(true);
+        setErrors({});
+        setSuccessMessage("");
+
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Connexion réussie - utiliser le contexte d'authentification
+          login(data.user);
+          
+          // Redirection vers la page d'accueil
+          router.push('/');
+        } else {
+          setErrors({ general: data.error || 'Une erreur est survenue' });
+        }
+      } catch (error) {
+        console.error('Erreur lors de la connexion:', error);
+        setErrors({ general: 'Erreur de connexion au serveur' });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -71,6 +115,18 @@ export default function Login() {
         </div>
 
         <div className="bg-slate-800/50 rounded-2xl border border-slate-700 p-8">
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-600/20 border border-green-500/50 rounded-xl text-green-400 text-center">
+              {successMessage}
+            </div>
+          )}
+          
+          {errors.general && (
+            <div className="mb-6 p-4 bg-red-600/20 border border-red-500/50 rounded-xl text-red-400 text-center">
+              {errors.general}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
@@ -142,9 +198,17 @@ export default function Login() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              Me connecter
+              {loading ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Connexion...</span>
+                </div>
+              ) : (
+                'Me connecter'
+              )}
             </button>
           </form>
 
