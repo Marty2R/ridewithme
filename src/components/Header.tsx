@@ -40,7 +40,8 @@ export default function Header() {
             {[
               { href: '/cars', label: 'Catalogue', icon: '🚗' },
               { href: '/about', label: 'À propos', icon: '👥' },
-              { href: '/contact', label: 'Contact', icon: '📞' }
+              { href: '/contact', label: 'Contact', icon: '📞' },
+              { href: '/admin/cars/new', label: 'Admin', icon: '⚙️' }
             ].map((item) => (
               <Link
                 key={item.href}
@@ -101,7 +102,8 @@ export default function Header() {
             {[
               { href: '/cars', label: 'Catalogue', icon: '🚗' },
               { href: '/about', label: 'À propos', icon: '👥' },
-              { href: '/contact', label: 'Contact', icon: '📞' }
+              { href: '/contact', label: 'Contact', icon: '📞' },
+              { href: '/admin/cars/new', label: 'Admin', icon: '⚙️' }
             ].map((item) => (
               <Link
                 key={item.href}

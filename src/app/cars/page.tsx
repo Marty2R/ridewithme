@@ -1,164 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { ICar } from "@/models/Car";
 
-const cars = [
-  {
-    id: 1,
-    brand: "Ferrari",
-    model: "488 GTB",
-    year: 2020,
-    price: 250,
-    location: "Paris",
-    image: "https://images.unsplash.com/photo-1544829099-b9a0c5303bea?w=800&h=500&fit=crop&crop=center",
-    owner: "Michel R.",
-    rating: 4.9,
-    reviews: 24,
-    horsepower: 670,
-    topSpeed: 330,
-    acceleration: 3.0,
-    category: "Supercar",
-    color: "Rouge Rosso Corsa"
-  },
-  {
-    id: 2,
-    brand: "Lamborghini",
-    model: "Huracán EVO",
-    year: 2021,
-    price: 300,
-    location: "Lyon",
-    image: "https://images.unsplash.com/photo-1563720223185-11003d516935?w=800&h=500&fit=crop&crop=center",
-    owner: "Sophie M.",
-    rating: 4.8,
-    reviews: 18,
-    horsepower: 640,
-    topSpeed: 325,
-    acceleration: 2.9,
-    category: "Supercar",
-    color: "Orange Arancio"
-  },
-  {
-    id: 3,
-    brand: "Porsche",
-    model: "911 Turbo S",
-    year: 2022,
-    price: 200,
-    location: "Marseille",
-    image: "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?w=800&h=500&fit=crop&crop=center",
-    owner: "Antoine L.",
-    rating: 5.0,
-    reviews: 31,
-    horsepower: 650,
-    topSpeed: 330,
-    acceleration: 2.7,
-    category: "Sport",
-    color: "Gris GT Silver"
-  },
-  {
-    id: 4,
-    brand: "McLaren",
-    model: "720S",
-    year: 2019,
-    price: 280,
-    location: "Nice",
-    image: "https://images.unsplash.com/photo-1520031441872-265b8e4156a2?w=800&h=500&fit=crop&crop=center",
-    owner: "Julie D.",
-    rating: 4.7,
-    reviews: 15,
-    horsepower: 720,
-    topSpeed: 341,
-    acceleration: 2.8,
-    category: "Supercar",
-    color: "Bleu Burton"
-  },
-  {
-    id: 5,
-    brand: "Aston Martin",
-    model: "DB11",
-    year: 2021,
-    price: 220,
-    location: "Bordeaux",
-    image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=500&fit=crop&crop=center",
-    owner: "Pierre K.",
-    rating: 4.9,
-    reviews: 22,
-    horsepower: 630,
-    topSpeed: 322,
-    acceleration: 3.9,
-    category: "Grand Tourer",
-    color: "Noir Jet Black"
-  },
-  {
-    id: 6,
-    brand: "BMW",
-    model: "M8 Competition",
-    year: 2022,
-    price: 180,
-    location: "Toulouse",
-    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=500&fit=crop&crop=center",
-    owner: "Clara B.",
-    rating: 4.6,
-    reviews: 19,
-    horsepower: 625,
-    topSpeed: 305,
-    acceleration: 3.2,
-    category: "Grand Tourer",
-    color: "Blanc Alpine"
-  },
-  {
-    id: 7,
-    brand: "Bugatti",
-    model: "Chiron",
-    year: 2023,
-    price: 500,
-    location: "Monaco",
-    image: "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&h=500&fit=crop&crop=center",
-    owner: "Alexandre D.",
-    rating: 5.0,
-    reviews: 8,
-    horsepower: 1500,
-    topSpeed: 420,
-    acceleration: 2.4,
-    category: "Hypercar",
-    color: "Bleu Bugatti"
-  },
-  {
-    id: 8,
-    brand: "Koenigsegg",
-    model: "Regera",
-    year: 2022,
-    price: 450,
-    location: "Cannes",
-    image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&h=500&fit=crop&crop=center",
-    owner: "Victoria S.",
-    rating: 4.9,
-    reviews: 5,
-    horsepower: 1360,
-    topSpeed: 400,
-    acceleration: 2.8,
-    category: "Hypercar",
-    color: "Carbon Noir"
-  },
-  {
-    id: 9,
-    brand: "Tesla",
-    model: "Roadster",
-    year: 2023,
-    price: 180,
-    location: "Paris",
-    image: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&h=500&fit=crop&crop=center",
-    owner: "Thomas E.",
-    rating: 4.7,
-    reviews: 12,
-    horsepower: 1020,
-    topSpeed: 400,
-    acceleration: 1.9,
-    category: "Électrique",
-    color: "Rouge Cherry"
-  }
-];
 
 export default function Cars() {
   const [filters, setFilters] = useState({
@@ -168,27 +14,41 @@ export default function Cars() {
     sortBy: "rating"
   });
 
-  const [filteredCars, setFilteredCars] = useState(cars);
+  const [cars, setCars] = useState<ICar[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCars = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        location: filters.location,
+        brand: filters.brand,
+        priceMax: filters.priceMax.toString(),
+        sortBy: filters.sortBy
+      });
+      
+      const response = await fetch(`/api/cars?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch cars');
+      }
+      
+      const data = await response.json();
+      setCars(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchCars();
+  }, [fetchCars]);
 
   const handleFilterChange = (key: string, value: string | number) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    
-    let filtered = cars.filter(car => {
-      return (
-        (newFilters.location === "" || car.location.toLowerCase().includes(newFilters.location.toLowerCase())) &&
-        (newFilters.brand === "" || car.brand.toLowerCase().includes(newFilters.brand.toLowerCase())) &&
-        car.price <= newFilters.priceMax
-      );
-    });
-
-    if (newFilters.sortBy === "price") {
-      filtered.sort((a, b) => a.price - b.price);
-    } else if (newFilters.sortBy === "rating") {
-      filtered.sort((a, b) => b.rating - a.rating);
-    }
-
-    setFilteredCars(filtered);
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -287,9 +147,27 @@ export default function Cars() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-white text-lg">Chargement des voitures...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-bold text-red-400 mb-4">Erreur</h3>
+              <p className="text-gray-400">{error}</p>
+            </div>
+          )}
+
           {/* Cars Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCars.map((car) => (
+          {!loading && !error && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {cars.map((car) => (
               <div key={car.id} className="group bg-black/40 backdrop-blur-xl rounded-3xl border border-gray-800/50 overflow-hidden hover:border-blue-500/50 transition-all duration-500 hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/10">
                 {/* Car Image */}
                 <div className="relative h-56 overflow-hidden">
@@ -384,10 +262,11 @@ export default function Cars() {
                 {/* Hover Effect Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 rounded-3xl transition-opacity duration-500 pointer-events-none"></div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {filteredCars.length === 0 && (
+          {!loading && !error && cars.length === 0 && (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">🚗</div>
               <h3 className="text-2xl font-bold text-white mb-4">Aucune voiture trouvée</h3>
