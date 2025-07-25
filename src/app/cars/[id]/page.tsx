@@ -19,6 +19,32 @@ export default function CarDetailPage({ params }: CarDetailPageProps) {
   
   const carId = parseInt(params.id);
 
+  // Créer un tableau combiné : image principale + images supplémentaires (sans doublons)
+  const getDisplayImages = (car: ICar | null) => {
+    if (!car) return [];
+    
+    const images = [];
+    
+    // Ajouter l'image principale
+    if (car.image) {
+      images.push(car.image);
+    }
+    
+    // Ajouter les images supplémentaires (éviter les doublons)
+    if (car.images && car.images.length > 0) {
+      car.images.forEach(img => {
+        if (img && img.trim() !== '' && img !== car.image) {
+          images.push(img);
+        }
+      });
+    }
+    
+    return images;
+  };
+
+  const displayImages = getDisplayImages(car);
+  const hasMultipleImages = displayImages.length > 1;
+
 
   useEffect(() => {
     const fetchCar = async () => {
@@ -51,22 +77,22 @@ export default function CarDetailPage({ params }: CarDetailPageProps) {
   // Navigation au clavier pour les images
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (!car || !car.images || car.images.length <= 1) return;
+      if (!hasMultipleImages) return;
       
       if (e.key === 'ArrowLeft') {
         setSelectedImageIndex((prev) => 
-          prev === 0 ? car.images!.length - 1 : prev - 1
+          prev === 0 ? displayImages.length - 1 : prev - 1
         );
       } else if (e.key === 'ArrowRight') {
         setSelectedImageIndex((prev) => 
-          prev === car.images!.length - 1 ? 0 : prev + 1
+          prev === displayImages.length - 1 ? 0 : prev + 1
         );
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [car]);
+  }, [hasMultipleImages, displayImages.length]);
 
   if (loading) {
     return (
@@ -105,7 +131,7 @@ export default function CarDetailPage({ params }: CarDetailPageProps) {
             <div>
               <div className="relative mb-6">
                 <img
-                  src={car.images?.[selectedImageIndex] || car.image}
+                  src={displayImages[selectedImageIndex] || car.image}
                   alt={`${car.brand} ${car.model}`}
                   className="w-full h-96 object-cover rounded-3xl shadow-2xl"
                 />
@@ -116,13 +142,13 @@ export default function CarDetailPage({ params }: CarDetailPageProps) {
                   {car.year}
                 </div>
                 
-                {/* Boutons de navigation - uniquement si plusieurs images ajoutées */}
-                {car.images && car.images.length > 1 && (
+                {/* Boutons de navigation - uniquement si plusieurs images */}
+                {hasMultipleImages && (
                   <>
                     {/* Bouton précédent */}
                     <button
                       onClick={() => setSelectedImageIndex((prev) => 
-                        prev === 0 ? car.images!.length - 1 : prev - 1
+                        prev === 0 ? displayImages.length - 1 : prev - 1
                       )}
                       className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 group"
                     >
@@ -134,7 +160,7 @@ export default function CarDetailPage({ params }: CarDetailPageProps) {
                     {/* Bouton suivant */}
                     <button
                       onClick={() => setSelectedImageIndex((prev) => 
-                        prev === car.images!.length - 1 ? 0 : prev + 1
+                        prev === displayImages.length - 1 ? 0 : prev + 1
                       )}
                       className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 group"
                     >
@@ -145,16 +171,16 @@ export default function CarDetailPage({ params }: CarDetailPageProps) {
                     
                     {/* Indicateur de position */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/70 backdrop-blur-sm text-white text-sm rounded-full">
-                      {selectedImageIndex + 1} / {car.images.length}
+                      {selectedImageIndex + 1} / {displayImages.length}
                     </div>
                   </>
                 )}
               </div>
               
               {/* Miniatures */}
-              {car.images && car.images.length > 1 && (
+              {hasMultipleImages && (
                 <div className="grid grid-cols-4 gap-3">
-                  {car.images.map((image, index) => (
+                  {displayImages.map((image, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImageIndex(index)}
