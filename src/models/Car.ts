@@ -10,6 +10,7 @@ export interface ICar {
   location: string;
   image: string;
   owner: string;
+  ownerId?: string;
   rating: number;
   reviews: number;
   horsepower: number;
@@ -86,6 +87,10 @@ const CarSchema = new mongoose.Schema<ICar>({
   owner: {
     type: String,
     required: true
+  },
+  ownerId: {
+    type: String,
+    required: false
   },
   rating: {
     type: Number,

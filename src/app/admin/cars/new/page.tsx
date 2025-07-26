@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CarFormData {
   brand: string;
@@ -82,6 +83,7 @@ const Section = ({ title, isExpanded, onToggle, children }: {
 
 export default function NewCarPage() {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -145,6 +147,26 @@ export default function NewCarPage() {
     included: [""]
   });
 
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login');
+      return;
+    }
+
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        owner: `${user.firstName} ${user.lastName}`,
+        location: user.city,
+        ownerDetails: {
+          ...prev.ownerDetails,
+          name: `${user.firstName} ${user.lastName}`,
+          location: user.city
+        }
+      }));
+    }
+  }, [user, isLoading, router]);
+
   const toggleSection = useCallback((section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -159,9 +181,16 @@ export default function NewCarPage() {
       setLoading(true);
       setError(null);
 
+      // Vérifier que l'utilisateur est connecté
+      if (!user) {
+        setError('Vous devez être connecté pour ajouter un véhicule');
+        return;
+      }
+
       // Nettoyer les données
       const cleanedData = {
         ...formData,
+        ownerId: user.id,
         images: formData.images.filter(img => img.trim() !== ""),
         ownerDetails: {
           ...formData.ownerDetails,
@@ -189,7 +218,7 @@ export default function NewCarPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push('/cars');
+        router.push('/my-cars');
       }, 2000);
 
     } catch (err) {
@@ -235,13 +264,28 @@ export default function NewCarPage() {
     });
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">✅</div>
           <h1 className="text-4xl font-bold text-green-400 mb-4">Voiture ajoutée avec succès !</h1>
-          <p className="text-gray-400">Redirection vers le catalogue...</p>
+          <p className="text-gray-400">Redirection vers mes véhicules...</p>
         </div>
       </div>
     );
